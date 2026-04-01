@@ -1,0 +1,255 @@
+# =========================
+# Custom project ignores
+# =========================
+logs/*
+logs/nginx/*
+docker_compose/db/backups/*
+
+# Keep directories if needed
+!logs/.gitkeep
+!logs/nginx/.gitkeep
+!docker_compose/db/backups/.gitkeep
+
+# =========================
+# Environment / secrets
+# =========================
+.env
+.env.*
+*.env
+*.env.local
+*.env.dev
+*.env.prod
+*.env.stage
+.envrc
+
+# Secrets / keys / certs
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.csr
+secrets.*
+secret.*
+vault.*
+*.kdbx
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+.Python
+
+# Packaging
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+share/python-wheels/
+var/
+wheels/
+pip-wheel-metadata/
+*.egg-info/
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing / coverage / typecheck
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache/
+.pytest_cache/
+mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.ruff_cache/
+.hypothesis/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# =========================
+# Virtual environments
+# =========================
+.venv/
+venv/
+env/
+ENV/
+venv.bak/
+pythonenv*
+
+# =========================
+# IDE / editors
+# =========================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# Mac / Linux / Windows junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# Logs / runtime files
+# =========================
+*.log
+*.out
+*.err
+*.pid
+*.pid.lock
+*.seed
+*.stackdump
+
+# Local sqlite dbs
+*.sqlite3
+*.db
+
+# =========================
+# Django
+# =========================
+staticfiles/
+media/
+mediafiles/
+
+# Collected static / local uploads
+public/static/
+public/media/
+
+# Django local settings
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# =========================
+# FastAPI / general app temp
+# =========================
+tmp/
+temp/
+tmpfiles/
+uploads/
+*.tmp
+
+# =========================
+# Odoo
+# =========================
+
+# Odoo filestore / local runtime data
+.filestore/
+filestore/
+odoo-data/
+data_dir/
+sessions/
+addons_path.txt
+
+# Odoo generated assets / local cache
+.webassets-cache
+*.sassc
+
+# Odoo config overrides / local configs
+odoo.conf
+odoo.local.conf
+*.odoo.conf
+
+# Odoo custom upgrade / dump artifacts
+*.dump
+*.sql
+*.sql.gz
+*.bak
+*.backup
+*.zip
+
+# =========================
+# PostgreSQL / DB dumps
+# =========================
+*.psql
+*.dump.gz
+pgdata/
+postgres-data/
+
+# =========================
+# Docker
+# =========================
+.docker/
+docker-data/
+docker-volumes/
+*.tar
+
+# Docker override local-only files
+docker-compose.override.yml
+docker-compose.local.yml
+compose.override.yml
+
+# =========================
+# Node / frontend (if any)
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.next/
+.nuxt/
+dist-frontend/
+
+# =========================
+# Frontend build artifacts in Odoo/Django projects
+# =========================
+static/dist/
+frontend/dist/
+frontend/build/
+
+# =========================
+# Terraform / infra (if any)
+# =========================
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# =========================
+# Kubernetes / local secrets
+# =========================
+kubeconfig*
+*.kubeconfig
+
+# =========================
+# Misc archives
+# =========================
+*.7z
+*.gz
+*.bz2
+*.rar
