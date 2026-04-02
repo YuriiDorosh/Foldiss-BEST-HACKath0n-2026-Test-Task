@@ -1,0 +1,115 @@
+version: '3.8'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Foldiss UAV — Root docker-compose
+#
+# Manages: RabbitMQ, Parser Worker, AI Worker, Frontend
+# Odoo + PostgreSQL are managed separately via odoo/Makefile
+#
+# Prerequisites:
+#   docker network create backend
+#   Odoo stack running: cd odoo && make up-all
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Message Broker ──────────────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"    # AMQP — used by Odoo, parser, AI worker
+      - "15672:15672"  # Management UI — http://localhost:15672
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── Parser Worker ───────────────────────────────────────────────────────────
+  parser:
+    build:
+      context: ./parser
+      dockerfile: Dockerfile
+    container_name: parser
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      ODOO_URL: ${ODOO_URL}
+      ODOO_DB: ${ODOO_DB}
+      ODOO_USER: ${ODOO_USER}
+      ODOO_PASSWORD: ${ODOO_PASSWORD}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+
+  # ── AI Worker ───────────────────────────────────────────────────────────────
+  ai_worker:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    container_name: ai_worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      ODOO_URL: ${ODOO_URL}
+      ODOO_DB: ${ODOO_DB}
+      ODOO_USER: ${ODOO_USER}
+      ODOO_PASSWORD: ${ODOO_PASSWORD}
+      AI_BASE_MODEL: ${AI_BASE_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}
+      LORA_ADAPTER_PATH: ${LORA_ADAPTER_PATH:-/adapters/uav_lora}
+      AI_MAX_TOKENS: ${AI_MAX_TOKENS:-512}
+      AI_TEMPERATURE: ${AI_TEMPERATURE:-0.7}
+      HF_HOME: /model_cache
+      TRANSFORMERS_CACHE: /model_cache
+    volumes:
+      - ai_model_cache:/model_cache    # persists HuggingFace download (~3 GB)
+      - ai_lora_adapter:/adapters      # persists LoRA fine-tune adapter
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+
+  # ── Frontend (React + Plotly.js) ────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_ODOO_URL: ${ODOO_URL:-http://localhost:8069}
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"   # http://localhost:3000
+    networks:
+      - backend
+
+# ─────────────────────────────────────────────────────────────────────────────
+volumes:
+  rabbitmq_data:
+  ai_model_cache:
+  ai_lora_adapter:
+
+networks:
+  backend:
+    external: true   # created by: docker network create backend

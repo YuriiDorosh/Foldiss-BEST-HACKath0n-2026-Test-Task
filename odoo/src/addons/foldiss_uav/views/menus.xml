@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Top-level application menu -->
+    <menuitem
+        id="uav_menu_root"
+        name="UAV Flights"
+        sequence="50"
+    />
+
+    <!-- Missions sub-menu -->
+    <menuitem
+        id="uav_menu_missions"
+        name="Missions"
+        parent="uav_menu_root"
+        action="uav_mission_action"
+        sequence="10"
+    />
+</odoo>

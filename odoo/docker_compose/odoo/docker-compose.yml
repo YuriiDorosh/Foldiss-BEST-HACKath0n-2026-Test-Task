@@ -7,8 +7,10 @@ services:
       dockerfile: docker_compose/odoo/Dockerfile
     container_name: odoo
     restart: unless-stopped
+    command: odoo --init=base --without-demo=all
     environment:
-      HOST: ${POSTGRES_DB}
+      HOST: postgres
+      PORT: "5432"
       USER: ${POSTGRES_USER}
       PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
