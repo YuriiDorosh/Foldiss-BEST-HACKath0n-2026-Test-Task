@@ -24,7 +24,7 @@ _logger = logging.getLogger(__name__)
 # ── Configuration ─────────────────────────────────────────────────────────────
 BASE_MODEL_ID   = os.environ.get("AI_BASE_MODEL",    "Qwen/Qwen2.5-1.5B-Instruct")
 LORA_ADAPTER_PATH = os.environ.get("LORA_ADAPTER_PATH", "/adapters/uav_lora")
-MAX_NEW_TOKENS  = int(os.environ.get("AI_MAX_TOKENS", "512"))
+MAX_NEW_TOKENS  = int(os.environ.get("AI_MAX_TOKENS", "80"))
 TEMPERATURE     = float(os.environ.get("AI_TEMPERATURE", "0.7"))
 TOP_P           = float(os.environ.get("AI_TOP_P", "0.9"))
 
@@ -42,16 +42,17 @@ def _load_model():
     _tokenizer = AutoTokenizer.from_pretrained(
         BASE_MODEL_ID,
         trust_remote_code=True,
-        cache_dir="/model_cache",
+        # cache_dir intentionally omitted — HF_HOME env var controls the path
     )
 
     _logger.info("Loading base model (CPU, float32) …")
     base = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL_ID,
-        torch_dtype=torch.bfloat16,
+        torch_dtype=torch.float32,
         device_map="cpu",
         trust_remote_code=True,
-        cache_dir="/model_cache",
+        low_cpu_mem_usage=True,   # stream weights to reduce peak RAM during load
+        # cache_dir intentionally omitted — HF_HOME env var controls the path
     )
 
     # Apply LoRA adapter if it exists; otherwise use base model as-is.
@@ -94,16 +95,16 @@ def generate_conclusion(metrics: dict) -> str:
     _logger.info("Generating conclusion (max_new_tokens=%d) …", MAX_NEW_TOKENS)
 
     inputs = _tokenizer(prompt, return_tensors="pt")
-    input_ids = inputs["input_ids"]
+    input_ids      = inputs["input_ids"]
+    attention_mask = inputs["attention_mask"]   # silence pad==eos warning
     prompt_len = input_ids.shape[-1]
 
     with torch.no_grad():
         output_ids = _model.generate(
             input_ids,
+            attention_mask=attention_mask,
             max_new_tokens=MAX_NEW_TOKENS,
-            temperature=TEMPERATURE,
-            top_p=TOP_P,
-            do_sample=True,
+            do_sample=False,          # greedy decoding — fastest on CPU
             pad_token_id=_tokenizer.eos_token_id,
         )
 

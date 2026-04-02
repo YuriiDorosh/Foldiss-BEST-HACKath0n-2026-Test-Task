@@ -11,7 +11,8 @@ NETWORK = backend
         up-parser up-parser-build down-parser logs-parser \
         up-ai up-ai-build down-ai logs-ai \
         up-frontend up-frontend-build down-frontend logs-frontend \
-        logs-all help
+        logs-all help \
+        ultra init-odoo download-model
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Network
@@ -118,12 +119,84 @@ logs-all:
 	$(DC) $(ENV) logs -f
 
 # ─────────────────────────────────────────────────────────────────────────────
+# ULTRA — full cold start from scratch
+# ─────────────────────────────────────────────────────────────────────────────
+ultra:
+	@echo ""
+	@echo "╔══════════════════════════════════════════════════════════╗"
+	@echo "║           ULTRA — full cold-start from scratch           ║"
+	@echo "╚══════════════════════════════════════════════════════════╝"
+	@echo ""
+
+	@echo ">>> [1/7] Creating artifacts directories..."
+	@mkdir -p artifacts/models artifacts/lora
+
+	@echo ">>> [2/7] Ensuring Docker network exists..."
+	@$(MAKE) check-network
+
+	@echo ">>> [3/7] Tearing down all existing containers + volumes..."
+	@$(DC) $(ENV) down --volumes --remove-orphans 2>/dev/null || true
+	@$(MAKE) -C odoo down-all-volumes 2>/dev/null || true
+
+	@echo ">>> [4/7] Building all images from scratch (no cache)..."
+	@$(DC) $(ENV) build --no-cache
+
+	@echo ">>> [5/7] Starting Odoo stack (DB + addon init, ~3-5 min)..."
+	@$(MAKE) -C odoo up-all-no-cache
+
+	@echo ">>> [6/7] Starting RabbitMQ + Parser + AI + Frontend..."
+	@$(DC) $(ENV) up -d
+
+	@echo ">>> [7/7] Waiting for Odoo and verifying foldiss_uav addon..."
+	@$(MAKE) init-odoo
+
+	@if [ -d "artifacts/models/hub" ] && [ "$$(ls -A artifacts/models/hub 2>/dev/null)" ]; then \
+		echo "  AI model  → found in artifacts/models/ (offline mode ON)"; \
+	else \
+		echo ""; \
+		echo "  WARNING: AI model not found in artifacts/models/"; \
+		echo "           Run: make download-model   (needs internet, ~3 GB)"; \
+	fi
+	@echo ""
+
+# ── Bootstrap Odoo DB + install foldiss_uav addon ────────────────────────────
+init-odoo:
+	@echo ">>> Initialising Odoo (waiting for HTTP + installing foldiss_uav)..."
+	@ODOO_EXTERNAL_URL=http://localhost:5433 \
+	 ODOO_DB=$(shell grep '^ODOO_DB' .env | cut -d= -f2 | tr -d ' ') \
+	 ODOO_USER=$(shell grep '^ODOO_USER' .env | cut -d= -f2 | tr -d ' ') \
+	 ODOO_PASSWORD=$(shell grep '^ODOO_PASSWORD' .env | cut -d= -f2 | tr -d ' ') \
+	 python3 scripts/init_odoo.py
+
+# ── Download model into artifacts/ (one-time, needs internet) ─────────────────
+download-model:
+	@echo ">>> Downloading Qwen2.5-1.5B-Instruct into artifacts/models/ ..."
+	@mkdir -p artifacts/models
+	@pip3 install --quiet huggingface-hub
+	@echo ">>> Using HF_TOKEN: $$(grep '^HF_TOKEN' .env | cut -d= -f2 | tr -d ' ' | cut -c1-10)..."
+	@HF_TOKEN=$$(grep '^HF_TOKEN' .env | cut -d= -f2 | tr -d ' ') python3 -c "\
+from huggingface_hub import snapshot_download; \
+import os; \
+snapshot_download('Qwen/Qwen2.5-1.5B-Instruct', \
+    cache_dir='artifacts/models/hub', \
+    token=os.environ.get('HF_TOKEN') or None, \
+    max_workers=8, \
+    ignore_patterns=['*.bin','*.pt']); \
+print('Done.')"
+	@echo "Model saved to artifacts/models/"
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Help
 # ─────────────────────────────────────────────────────────────────────────────
 help:
 	@echo ""
 	@echo "Foldiss UAV — Monorepo Makefile"
 	@echo "================================"
+	@echo ""
+	@echo "Cold start:"
+	@echo "  make ultra             Full rebuild from scratch (wipes volumes, no-cache)"
+	@echo "  make init-odoo         Wait for Odoo + install foldiss_uav + print creds"
+	@echo "  make download-model    Download Qwen model into artifacts/models/ (once)"
 	@echo ""
 	@echo "Full stack:"
 	@echo "  make up-all            Start everything (Odoo + services)"

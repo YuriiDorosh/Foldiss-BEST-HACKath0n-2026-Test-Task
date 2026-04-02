@@ -7,7 +7,7 @@ services:
       dockerfile: docker_compose/odoo/Dockerfile
     container_name: odoo
     restart: unless-stopped
-    command: odoo --init=base --without-demo=all
+    command: odoo --init=base,mail,foldiss_uav --without-demo=all
     environment:
       HOST: postgres
       PORT: "5432"

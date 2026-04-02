@@ -11,7 +11,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import MissionPage from "./pages/MissionPage";
 
 function LandingPage() {
-  const odooUrl = import.meta.env.VITE_ODOO_URL || "http://localhost:8069";
   return (
     <div style={{
       display: "flex", flexDirection: "column",
@@ -23,7 +22,7 @@ function LandingPage() {
         Open a mission from Odoo to view the 3D trajectory and AI analysis.
       </p>
       <a
-        href={`${odooUrl}/web#action=foldiss_uav`}
+        href="http://localhost:5433/odoo/uav-missions"
         style={{
           padding: "10px 20px",
           background: "#1f6feb",

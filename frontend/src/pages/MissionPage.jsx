@@ -12,6 +12,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import Trajectory3D   from "../components/Trajectory3D";
+import TrajectoryMap  from "../components/TrajectoryMap";
 import MetricsPanel   from "../components/MetricsPanel";
 import AiConclusion   from "../components/AiConclusion";
 import { fetchMissionStatus, fetchMissionData } from "../api/odoo";
@@ -26,6 +27,7 @@ export default function MissionPage() {
   const [status,      setStatus]      = useState("loading");
   const [missionData, setMissionData] = useState(null);
   const [error,       setError]       = useState(null);
+  const [viewMode,    setViewMode]    = useState("3d"); // "3d" | "map"
 
   const pollRef   = useRef(null);
   const fetchedRef = useRef(false);
@@ -123,12 +125,30 @@ export default function MissionPage() {
       {/* ── Main content once data is available ── */}
       {missionData && (
         <div style={styles.content}>
-          {/* 3D trajectory */}
+          {/* Trajectory view toggle + viewer */}
           <section style={styles.section}>
-            <Trajectory3D
-              enuPoints={missionData.enu_points || []}
-              gpsPoints={missionData.gps_points || []}
-            />
+            <div style={styles.viewToggleRow}>
+              <button
+                style={viewMode === "3d" ? styles.toggleActive : styles.toggleInactive}
+                onClick={() => setViewMode("3d")}
+              >
+                📐 3D View
+              </button>
+              <button
+                style={viewMode === "map" ? styles.toggleActive : styles.toggleInactive}
+                onClick={() => setViewMode("map")}
+              >
+                🗺️ Map View
+              </button>
+            </div>
+            {viewMode === "3d" ? (
+              <Trajectory3D
+                enuPoints={missionData.enu_points || []}
+                gpsPoints={missionData.gps_points || []}
+              />
+            ) : (
+              <TrajectoryMap gpsPoints={missionData.gps_points || []} />
+            )}
           </section>
 
           {/* Metrics */}
@@ -253,6 +273,31 @@ const styles = {
   },
   section: {
     background: "#0d1117",
+  },
+  viewToggleRow: {
+    display:       "flex",
+    gap:           "8px",
+    marginBottom:  "12px",
+  },
+  toggleActive: {
+    padding:      "6px 16px",
+    border:       "1px solid #58a6ff",
+    borderRadius: "6px",
+    background:   "#1f2937",
+    color:        "#58a6ff",
+    fontWeight:   600,
+    fontSize:     "13px",
+    cursor:       "pointer",
+  },
+  toggleInactive: {
+    padding:      "6px 16px",
+    border:       "1px solid #30363d",
+    borderRadius: "6px",
+    background:   "transparent",
+    color:        "#8b949e",
+    fontWeight:   400,
+    fontSize:     "13px",
+    cursor:       "pointer",
   },
   sectionTitle: {
     fontSize: "16px",

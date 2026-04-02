@@ -168,6 +168,19 @@ class UavMission(models.Model):
         _logger.info("Mission %s queued for parsing (attachment %s)", self.id, attachment.id)
         return True
 
+    def action_rerun(self):
+        """Reset this mission to draft and resubmit the full parse → AI flow."""
+        self.ensure_one()
+        self.write({
+            "status":        "draft",
+            "error_message": False,
+            "ai_conclusion": False,
+        })
+        if self.parse_result_id:
+            self.parse_result_id.unlink()
+            self.parse_result_id = False
+        return self.action_start_parsing()
+
     def action_open_viewer(self):
         """Open the 3D trajectory viewer in a new browser tab."""
         self.ensure_one()

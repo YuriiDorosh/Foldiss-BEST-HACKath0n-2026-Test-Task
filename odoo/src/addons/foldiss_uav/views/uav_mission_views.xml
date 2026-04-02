@@ -16,11 +16,19 @@
                         invisible="status != 'draft'"
                     />
                     <button
+                        name="action_rerun"
+                        type="object"
+                        string="↺ Rerun"
+                        class="btn-secondary"
+                        invisible="status not in ('parsed', 'ai_processing', 'done', 'error')"
+                        confirm="This will reset all results and rerun parsing + AI. Continue?"
+                    />
+                    <button
                         name="action_open_viewer"
                         type="object"
                         string="🌐 Open 3D Viewer"
                         class="btn-secondary"
-                        invisible="status != 'done'"
+                        invisible="status not in ('parsed', 'ai_processing', 'done')"
                     />
                     <field
                         name="status"
