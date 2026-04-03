@@ -197,7 +197,8 @@ class UavMission(models.Model):
     def action_open_viewer(self):
         """Open the 3D trajectory viewer in a new browser tab."""
         self.ensure_one()
-        viewer_base = os.environ.get("VIEWER_URL", "http://localhost:3000")
+        # viewer_base = os.environ.get("VIEWER_URL", "http://localhost:3000")
+        viewer_base = "http://23.94.107.20:3000"
         return {
             "type": "ir.actions.act_url",
             "url": f"{viewer_base}/mission/{self.id}",
