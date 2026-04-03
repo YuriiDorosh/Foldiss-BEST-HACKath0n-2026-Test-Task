@@ -62,7 +62,9 @@ class UavMission(models.Model):
         readonly=True,
         ondelete="set null",
     )
-    ai_conclusion = fields.Text(string="AI Conclusion", readonly=True)
+    ai_conclusion = fields.Html(
+        string="AI Conclusion", readonly=True, sanitize=False
+    )
 
     # ── Related metrics (pulled from parse result for easy display) ──────────
     result_total_distance = fields.Float(

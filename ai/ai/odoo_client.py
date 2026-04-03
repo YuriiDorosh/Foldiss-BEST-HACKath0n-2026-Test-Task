@@ -22,6 +22,7 @@ SCALAR_FIELDS = [
     "imu_count",
     "gps_sample_rate",
     "imu_sample_rate",
+    "analytics",
 ]
 
 

@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 from odoo.http import request
 
@@ -49,6 +50,10 @@ class UavController(http.Controller):
             if field in params:
                 vals[field] = params[field]
 
+        # Convert markdown AI conclusion to HTML for Odoo rendering
+        if "ai_conclusion" in vals and vals["ai_conclusion"]:
+            vals["ai_conclusion"] = self._markdown_to_html(vals["ai_conclusion"])
+
         if vals:
             mission.write(vals)
             _logger.info(
@@ -56,6 +61,56 @@ class UavController(http.Controller):
             )
 
         return {"success": True, "mission_id": mission_id}
+
+    @staticmethod
+    def _markdown_to_html(text):
+        """Lightweight markdown → HTML for AI conclusion rendering."""
+        lines = text.split("\n")
+        html_lines = []
+        in_list = False
+        for line in lines:
+            stripped = line.strip()
+            # Headers
+            if stripped.startswith("#### "):
+                if in_list:
+                    html_lines.append("</ul>")
+                    in_list = False
+                html_lines.append(f"<h5>{stripped[5:]}</h5>")
+            elif stripped.startswith("### "):
+                if in_list:
+                    html_lines.append("</ul>")
+                    in_list = False
+                html_lines.append(f"<h4>{stripped[4:]}</h4>")
+            elif stripped.startswith("## "):
+                if in_list:
+                    html_lines.append("</ul>")
+                    in_list = False
+                html_lines.append(f"<h3>{stripped[3:]}</h3>")
+            # Bullet points
+            elif stripped.startswith("- ") or stripped.startswith("* "):
+                if not in_list:
+                    html_lines.append("<ul>")
+                    in_list = True
+                content = stripped[2:]
+                # Bold markers
+                content = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", content)
+                html_lines.append(f"<li>{content}</li>")
+            # Blank line
+            elif stripped == "":
+                if in_list:
+                    html_lines.append("</ul>")
+                    in_list = False
+                html_lines.append("<br/>")
+            # Regular paragraph
+            else:
+                if in_list:
+                    html_lines.append("</ul>")
+                    in_list = False
+                content = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", stripped)
+                html_lines.append(f"<p>{content}</p>")
+        if in_list:
+            html_lines.append("</ul>")
+        return "\n".join(html_lines)
 
     # ── Frontend: status poll (GET) ───────────────────────────────────────────
     @http.route(
@@ -127,6 +182,7 @@ class UavController(http.Controller):
         gps_points = safe_json(result.gps_points, [])
         enu_points = safe_json(result.enu_points, [])
         imu_data = safe_json(result.imu_data, {})
+        analytics = safe_json(result.analytics, {})
 
         payload.update(
             {
@@ -145,6 +201,7 @@ class UavController(http.Controller):
                 "gps_points": gps_points,
                 "enu_points": enu_points,
                 "imu_data": imu_data,
+                "analytics": analytics,
             }
         )
 

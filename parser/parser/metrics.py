@@ -239,6 +239,13 @@ def compute_all_metrics(
         "acc_magnitude": [round(float(a), 4) for a in acc_magnitude],
     }
 
+    # ── 9. FLIGHT ANALYTICS ─────────────────────────────────────────────────
+    analytics = _compute_analytics(
+        times_gps, lats, lngs, alts, spds,
+        times_imu, acc_x, acc_y, acc_z, acc_magnitude, vel_z,
+        enu_points, total_distance, flight_duration,
+    )
+
     return {
         # Scalar metrics
         "total_distance": round(total_distance, 2),
@@ -255,4 +262,184 @@ def compute_all_metrics(
         "gps_points": gps_points,
         "enu_points": enu_points,
         "imu_data": imu_data,
+        # Flight analytics
+        "analytics": analytics,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Flight analytics
+# ─────────────────────────────────────────────────────────────────────────────
+
+HOVER_SPEED_THRESHOLD = 0.5   # m/s — below this is considered hover
+PHASE_MIN_DURATION = 2.0      # seconds — ignore phases shorter than this
+
+
+def _compute_analytics(
+    times_gps, lats, lngs, alts, spds,
+    times_imu, acc_x, acc_y, acc_z, acc_magnitude, vel_z,
+    enu_points, total_distance, flight_duration,
+):
+    """Compute rich flight analytics from raw telemetry arrays."""
+    analytics = {}
+
+    # ── Path efficiency ─────────────────────────────────────────────────────
+    # Straight-line distance (start → end) vs total distance flown
+    straight_line = haversine(
+        float(lats[0]), float(lngs[0]),
+        float(lats[-1]), float(lngs[-1]),
+    )
+    analytics["path_efficiency"] = round(
+        straight_line / total_distance * 100 if total_distance > 0 else 0, 1
+    )
+    analytics["straight_line_distance"] = round(straight_line, 2)
+
+    # ── Average speed ───────────────────────────────────────────────────────
+    analytics["avg_speed"] = round(
+        total_distance / flight_duration if flight_duration > 0 else 0, 2
+    )
+
+    # ── Climb / descent rates ───────────────────────────────────────────────
+    alt_diffs = np.diff(alts)
+    time_diffs_gps = np.diff(times_gps)
+    time_diffs_gps[time_diffs_gps == 0] = 0.001  # avoid div by zero
+    climb_rates = alt_diffs / time_diffs_gps
+    analytics["max_climb_rate"] = round(float(np.max(climb_rates)), 2)
+    analytics["max_descent_rate"] = round(float(np.abs(np.min(climb_rates))), 2)
+    analytics["avg_altitude"] = round(float(np.mean(alts)), 1)
+
+    # ── Flight phases ───────────────────────────────────────────────────────
+    # Segment flight into: takeoff, climb, cruise, hover, descent, landing
+    phases = []
+    hover_time = 0.0
+    climb_time = 0.0
+    descent_time = 0.0
+    cruise_time = 0.0
+
+    for i in range(len(spds)):
+        dt = float(time_diffs_gps[i]) if i < len(time_diffs_gps) else 0
+        speed = float(spds[i])
+        climb_rate = float(climb_rates[i]) if i < len(climb_rates) else 0
+
+        if speed < HOVER_SPEED_THRESHOLD:
+            hover_time += dt
+        elif climb_rate > 0.5:
+            climb_time += dt
+        elif climb_rate < -0.5:
+            descent_time += dt
+        else:
+            cruise_time += dt
+
+    analytics["hover_time"] = round(hover_time, 1)
+    analytics["cruise_time"] = round(cruise_time, 1)
+    analytics["climb_time"] = round(climb_time, 1)
+    analytics["descent_time"] = round(descent_time, 1)
+    analytics["hover_ratio"] = round(
+        hover_time / flight_duration * 100 if flight_duration > 0 else 0, 1
+    )
+
+    # ── Speed distribution (histogram buckets) ──────────────────────────────
+    speed_buckets = {
+        "0-2 m/s": 0, "2-5 m/s": 0, "5-10 m/s": 0,
+        "10-20 m/s": 0, "20+ m/s": 0,
+    }
+    for i, s in enumerate(spds):
+        dt = float(time_diffs_gps[i]) if i < len(time_diffs_gps) else 0
+        sf = float(s)
+        if sf < 2:
+            speed_buckets["0-2 m/s"] += dt
+        elif sf < 5:
+            speed_buckets["2-5 m/s"] += dt
+        elif sf < 10:
+            speed_buckets["5-10 m/s"] += dt
+        elif sf < 20:
+            speed_buckets["10-20 m/s"] += dt
+        else:
+            speed_buckets["20+ m/s"] += dt
+    # Convert to percentage
+    analytics["speed_distribution"] = {
+        k: round(v / flight_duration * 100 if flight_duration > 0 else 0, 1)
+        for k, v in speed_buckets.items()
+    }
+
+    # ── Vibration analysis (IMU) ────────────────────────────────────────────
+    # RMS of acceleration deviation from gravity — high values = vibration
+    gravity = 9.80665
+    acc_deviation = acc_magnitude - gravity
+    vibration_rms = float(np.sqrt(np.mean(acc_deviation ** 2)))
+    analytics["vibration_rms"] = round(vibration_rms, 3)
+
+    # Vibration level classification
+    if vibration_rms < 1.0:
+        analytics["vibration_level"] = "LOW"
+    elif vibration_rms < 3.0:
+        analytics["vibration_level"] = "MEDIUM"
+    else:
+        analytics["vibration_level"] = "HIGH"
+
+    # Per-axis vibration RMS
+    analytics["vibration_x"] = round(float(np.std(acc_x)), 3)
+    analytics["vibration_y"] = round(float(np.std(acc_y)), 3)
+    analytics["vibration_z"] = round(float(np.std(acc_z)), 3)
+
+    # ── Heading / turn analysis ─────────────────────────────────────────────
+    # Compute heading from consecutive GPS points and count significant turns
+    headings = []
+    for i in range(1, len(lats)):
+        dlng = float(lngs[i] - lngs[i - 1])
+        dlat = float(lats[i] - lats[i - 1])
+        heading = math.degrees(math.atan2(dlng, dlat)) % 360
+        headings.append(heading)
+
+    turn_count = 0
+    total_heading_change = 0.0
+    for i in range(1, len(headings)):
+        delta = abs(headings[i] - headings[i - 1])
+        if delta > 180:
+            delta = 360 - delta
+        total_heading_change += delta
+        if delta > 15:  # significant turn > 15 degrees between GPS fixes
+            turn_count += 1
+
+    analytics["turn_count"] = turn_count
+    analytics["total_heading_change"] = round(total_heading_change, 1)
+
+    # ── GPS anomaly detection ───────────────────────────────────────────────
+    # Detect GPS jumps — unrealistic distance between consecutive fixes
+    gps_jumps = 0
+    max_jump = 0.0
+    for i in range(len(lats) - 1):
+        dt = float(time_diffs_gps[i])
+        if dt <= 0:
+            continue
+        dist = haversine(float(lats[i]), float(lngs[i]),
+                         float(lats[i + 1]), float(lngs[i + 1]))
+        implied_speed = dist / dt
+        if implied_speed > 50:  # > 50 m/s = 180 km/h — likely GPS glitch
+            gps_jumps += 1
+            max_jump = max(max_jump, dist)
+
+    analytics["gps_jumps"] = gps_jumps
+    analytics["max_gps_jump"] = round(max_jump, 2)
+
+    # ── Acceleration spike detection ────────────────────────────────────────
+    acc_spike_threshold = 15.0  # m/s² above gravity
+    acc_spikes = int(np.sum(np.abs(acc_deviation) > acc_spike_threshold))
+    analytics["acceleration_spikes"] = acc_spikes
+
+    # ── Altitude profile (sampled for chart) ────────────────────────────────
+    # Downsample to ~100 points for the chart
+    n_points = min(100, len(alts))
+    indices = np.linspace(0, len(alts) - 1, n_points, dtype=int)
+    analytics["altitude_profile"] = {
+        "times": [round(float(times_gps[i] - times_gps[0]), 1) for i in indices],
+        "altitudes": [round(float(alts[i]), 1) for i in indices],
+    }
+
+    # ── Speed profile (sampled for chart) ───────────────────────────────────
+    analytics["speed_profile"] = {
+        "times": [round(float(times_gps[i] - times_gps[0]), 1) for i in indices],
+        "speeds": [round(float(spds[i]), 2) for i in indices],
+    }
+
+    return analytics

@@ -105,7 +105,7 @@
                                 <field
                                     name="ai_conclusion"
                                     readonly="1"
-                                    widget="text"
+                                    widget="html"
                                     nolabel="1"
                                 />
                             </div>

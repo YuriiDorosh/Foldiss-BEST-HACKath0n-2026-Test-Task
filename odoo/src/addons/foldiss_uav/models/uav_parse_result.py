@@ -77,3 +77,7 @@ class UavParseResult(models.Model):
         string="IMU Data (JSON)",
         help="Dict with keys: times, vel_z (trapz-integrated), acc_magnitude.",
     )
+    analytics = fields.Text(
+        string="Flight Analytics (JSON)",
+        help="Computed flight analytics: phases, vibration, path efficiency, etc.",
+    )

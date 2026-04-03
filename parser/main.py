@@ -129,6 +129,7 @@ def make_callback(odoo: OdooClient, channel):
             result_vals["gps_points"] = json.dumps(metrics["gps_points"])
             result_vals["enu_points"] = json.dumps(metrics["enu_points"])
             result_vals["imu_data"] = json.dumps(metrics["imu_data"])
+            result_vals["analytics"] = json.dumps(metrics["analytics"])
 
             result_id = odoo.create_parse_result(result_vals)
 
