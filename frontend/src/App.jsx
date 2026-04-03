@@ -22,7 +22,7 @@ function LandingPage() {
         Open a mission from Odoo to view the 3D trajectory and AI analysis.
       </p>
       <a
-        href="http://localhost:5433/odoo/uav-missions"
+        href={`${import.meta.env.VITE_ODOO_EXTERNAL_URL || ""}/odoo/uav-missions`}
         style={{
           padding: "10px 20px",
           background: "#1f6feb",

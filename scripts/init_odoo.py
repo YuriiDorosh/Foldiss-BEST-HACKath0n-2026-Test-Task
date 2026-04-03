@@ -176,8 +176,10 @@ def main() -> int:
     print(f"  Login    →  {USER}")
     print(f"  Password →  {PASSWORD}")
     print()
-    print("  Frontend →  http://localhost:3000")
-    print("  RabbitMQ →  http://localhost:15672  (guest / guest)")
+    viewer_url = os.environ.get("VIEWER_URL", "http://localhost:3000")
+    rabbitmq_host = os.environ.get("RABBITMQ_HOST", "localhost")
+    print(f"  Frontend →  {viewer_url}")
+    print(f"  RabbitMQ →  http://{rabbitmq_host}:15672  (guest / guest)")
     print("=" * 60)
     print()
     return 0

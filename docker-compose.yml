@@ -98,7 +98,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_ODOO_URL: ""   # empty = same-origin; nginx proxies /uav/* → odoo:8069
+        VITE_ODOO_URL: ""                                          # empty = same-origin; nginx proxies /uav/* → odoo:8069
+        VITE_ODOO_EXTERNAL_URL: ${VITE_ODOO_EXTERNAL_URL:-""}
     container_name: frontend
     restart: unless-stopped
     ports:

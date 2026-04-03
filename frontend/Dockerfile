@@ -10,9 +10,11 @@ RUN npm install
 # Copy source and build
 COPY . .
 
-# VITE_ODOO_URL is injected at build time via docker-compose build-arg
-ARG VITE_ODOO_URL=http://localhost:8069
+# Build-time env vars injected via docker-compose build args
+ARG VITE_ODOO_URL=""
+ARG VITE_ODOO_EXTERNAL_URL=""
 ENV VITE_ODOO_URL=${VITE_ODOO_URL}
+ENV VITE_ODOO_EXTERNAL_URL=${VITE_ODOO_EXTERNAL_URL}
 
 RUN npm run build
 

@@ -162,10 +162,12 @@ ultra:
 # ── Bootstrap Odoo DB + install foldiss_uav addon ────────────────────────────
 init-odoo:
 	@echo ">>> Initialising Odoo (waiting for HTTP + installing foldiss_uav)..."
-	@ODOO_EXTERNAL_URL=http://localhost:5433 \
+	@ODOO_EXTERNAL_URL=$(shell grep '^VITE_ODOO_EXTERNAL_URL' .env | cut -d= -f2 | tr -d ' ') \
 	 ODOO_DB=$(shell grep '^ODOO_DB' .env | cut -d= -f2 | tr -d ' ') \
 	 ODOO_USER=$(shell grep '^ODOO_USER' .env | cut -d= -f2 | tr -d ' ') \
 	 ODOO_PASSWORD=$(shell grep '^ODOO_PASSWORD' .env | cut -d= -f2 | tr -d ' ') \
+	 VIEWER_URL=$(shell grep '^VIEWER_URL' .env | cut -d= -f2 | tr -d ' ') \
+	 RABBITMQ_HOST=$(shell grep '^RABBITMQ_HOST' .env | cut -d= -f2 | tr -d ' ') \
 	 python3 scripts/init_odoo.py
 
 # ── Download model into artifacts/ (one-time, needs internet) ─────────────────
