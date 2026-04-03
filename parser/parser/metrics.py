@@ -8,12 +8,13 @@ All three mandatory algorithms are implemented here:
 """
 
 import math
-import numpy as np
 
+import numpy as np
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. Haversine distance
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Great-circle distance between two WGS-84 points.
@@ -32,13 +33,15 @@ def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
     R = 6_371_000.0  # Mean Earth radius in metres
 
-    phi1    = math.radians(lat1)
-    phi2    = math.radians(lat2)
-    dphi    = math.radians(lat2 - lat1)
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
 
-    a = (math.sin(dphi / 2) ** 2
-         + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2)
+    a = (
+        math.sin(dphi / 2) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    )
 
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
@@ -48,6 +51,7 @@ def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. Trapezoidal integration: acceleration → velocity
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def trapz_velocity(acc_z: np.ndarray, time_s: np.ndarray) -> np.ndarray:
     """Compute vertical velocity by trapezoidal integration of IMU AccZ.
@@ -89,9 +93,14 @@ def trapz_velocity(acc_z: np.ndarray, time_s: np.ndarray) -> np.ndarray:
 # 3. WGS-84 → ENU coordinate conversion
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def wgs84_to_enu(
-    lat: float, lon: float, alt: float,
-    lat0: float, lon0: float, alt0: float,
+    lat: float,
+    lon: float,
+    alt: float,
+    lat0: float,
+    lon0: float,
+    alt0: float,
 ) -> tuple[float, float, float]:
     """Convert a WGS-84 geodetic point to local ENU (East-North-Up) metres.
 
@@ -114,9 +123,9 @@ def wgs84_to_enu(
     """
     R = 6_378_137.0  # WGS-84 semi-major axis in metres
 
-    east  = R * math.radians(lon - lon0) * math.cos(math.radians(lat0))
+    east = R * math.radians(lon - lon0) * math.cos(math.radians(lat0))
     north = R * math.radians(lat - lat0)
-    up    = alt - alt0
+    up = alt - alt0
 
     return east, north, up
 
@@ -124,6 +133,7 @@ def wgs84_to_enu(
 # ─────────────────────────────────────────────────────────────────────────────
 # Master metric computation
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def compute_all_metrics(
     gps: list[dict],
@@ -150,16 +160,16 @@ def compute_all_metrics(
 
     # ── GPS arrays ───────────────────────────────────────────────────────────
     times_gps = np.array([r["TimeUS"] / 1e6 for r in gps])  # seconds
-    lats      = np.array([r["Lat"]           for r in gps])
-    lngs      = np.array([r["Lng"]           for r in gps])
-    alts      = np.array([r["Alt"]           for r in gps])
-    spds      = np.array([r["Spd"]           for r in gps])
+    lats = np.array([r["Lat"] for r in gps])
+    lngs = np.array([r["Lng"] for r in gps])
+    alts = np.array([r["Alt"] for r in gps])
+    spds = np.array([r["Spd"] for r in gps])
 
     # ── IMU arrays ───────────────────────────────────────────────────────────
     times_imu = np.array([r["TimeUS"] / 1e6 for r in imu])  # seconds
-    acc_x     = np.array([r["AccX"]         for r in imu])
-    acc_y     = np.array([r["AccY"]         for r in imu])
-    acc_z     = np.array([r["AccZ"]         for r in imu])
+    acc_x = np.array([r["AccX"] for r in imu])
+    acc_y = np.array([r["AccY"] for r in imu])
+    acc_z = np.array([r["AccZ"] for r in imu])
 
     # ── 1. Total distance (haversine) ─────────────────────────────────────
     total_distance = sum(
@@ -171,14 +181,14 @@ def compute_all_metrics(
     max_h_speed = float(np.max(spds))
 
     # ── 3. Max vertical speed (trapezoidal integration of IMU AccZ) ───────
-    vel_z     = trapz_velocity(acc_z, times_imu)
+    vel_z = trapz_velocity(acc_z, times_imu)
     max_v_speed = float(np.max(np.abs(vel_z)))
 
     # ── 4. Max acceleration magnitude (gravity removed) ───────────────────
     #   Net acceleration = sqrt(ax²+ay²+az²); subtract gravity magnitude
     #   so the metric reflects dynamic loading only.
-    acc_magnitude = np.sqrt(acc_x ** 2 + acc_y ** 2 + acc_z ** 2)
-    gravity       = 9.80665  # m/s²
+    acc_magnitude = np.sqrt(acc_x**2 + acc_y**2 + acc_z**2)
+    gravity = 9.80665  # m/s²
     max_acceleration = float(np.max(np.abs(acc_magnitude - gravity)))
 
     # ── 5. Max altitude gain ──────────────────────────────────────────────
@@ -188,28 +198,26 @@ def compute_all_metrics(
     flight_duration = float(times_gps[-1] - times_gps[0])
 
     # ── 7. Sample rates ───────────────────────────────────────────────────
-    gps_sample_rate = (
-        float(len(gps) / flight_duration) if flight_duration > 0 else 0.0
-    )
-    imu_duration    = float(times_imu[-1] - times_imu[0])
-    imu_sample_rate = (
-        float(len(imu) / imu_duration) if imu_duration > 0 else 0.0
-    )
+    gps_sample_rate = float(len(gps) / flight_duration) if flight_duration > 0 else 0.0
+    imu_duration = float(times_imu[-1] - times_imu[0])
+    imu_sample_rate = float(len(imu) / imu_duration) if imu_duration > 0 else 0.0
 
     # ── 8. WGS-84 → ENU trajectory ───────────────────────────────────────
     lat0, lon0, alt0 = float(lats[0]), float(lngs[0]), float(alts[0])
     enu_points = []
     for lat, lon, alt in zip(lats.tolist(), lngs.tolist(), alts.tolist()):
         e, n, u = wgs84_to_enu(lat, lon, alt, lat0, lon0, alt0)
-        enu_points.append({
-            "east":  round(e, 3),
-            "north": round(n, 3),
-            "up":    round(u, 3),
-        })
+        enu_points.append(
+            {
+                "east": round(e, 3),
+                "north": round(n, 3),
+                "up": round(u, 3),
+            }
+        )
 
     gps_points = [
         {
-            "t":   round(float(t), 3),
+            "t": round(float(t), 3),
             "lat": round(float(lat), 7),
             "lng": round(float(lng), 7),
             "alt": round(float(alt), 3),
@@ -226,25 +234,25 @@ def compute_all_metrics(
 
     # ── IMU data (for viewer charts) ──────────────────────────────────────
     imu_data = {
-        "times":         [round(float(t), 4) for t in times_imu],
-        "vel_z":         [round(float(v), 4) for v in vel_z],
+        "times": [round(float(t), 4) for t in times_imu],
+        "vel_z": [round(float(v), 4) for v in vel_z],
         "acc_magnitude": [round(float(a), 4) for a in acc_magnitude],
     }
 
     return {
         # Scalar metrics
-        "total_distance":    round(total_distance, 2),
-        "max_h_speed":       round(max_h_speed, 3),
-        "max_v_speed":       round(max_v_speed, 3),
-        "max_acceleration":  round(max_acceleration, 3),
+        "total_distance": round(total_distance, 2),
+        "max_h_speed": round(max_h_speed, 3),
+        "max_v_speed": round(max_v_speed, 3),
+        "max_acceleration": round(max_acceleration, 3),
         "max_altitude_gain": round(max_altitude_gain, 2),
-        "flight_duration":   round(flight_duration, 2),
-        "gps_count":         len(gps),
-        "imu_count":         len(imu),
-        "gps_sample_rate":   round(gps_sample_rate, 2),
-        "imu_sample_rate":   round(imu_sample_rate, 2),
+        "flight_duration": round(flight_duration, 2),
+        "gps_count": len(gps),
+        "imu_count": len(imu),
+        "gps_sample_rate": round(gps_sample_rate, 2),
+        "imu_sample_rate": round(imu_sample_rate, 2),
         # Trajectory arrays (serialise to JSON before storing in Odoo)
         "gps_points": gps_points,
         "enu_points": enu_points,
-        "imu_data":   imu_data,
+        "imu_data": imu_data,
     }

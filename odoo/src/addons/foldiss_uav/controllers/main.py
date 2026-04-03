@@ -1,8 +1,9 @@
 import json
 import logging
 
-from odoo import http
 from odoo.http import request
+
+from odoo import http
 
 _logger = logging.getLogger(__name__)
 
@@ -50,7 +51,9 @@ class UavController(http.Controller):
 
         if vals:
             mission.write(vals)
-            _logger.info("Webhook updated mission %s: %s", mission_id, list(vals.keys()))
+            _logger.info(
+                "Webhook updated mission %s: %s", mission_id, list(vals.keys())
+            )
 
         return {"success": True, "mission_id": mission_id}
 
@@ -71,12 +74,14 @@ class UavController(http.Controller):
                 {"error": "Mission not found"}, status=404
             )
 
-        return request.make_json_response({
-            "id":            mission.id,
-            "name":          mission.name,
-            "status":        mission.status,
-            "error_message": mission.error_message or "",
-        })
+        return request.make_json_response(
+            {
+                "id": mission.id,
+                "name": mission.name,
+                "status": mission.status,
+                "error_message": mission.error_message or "",
+            }
+        )
 
     # ── Frontend: full trajectory data (GET) ──────────────────────────────────
     @http.route(
@@ -102,11 +107,11 @@ class UavController(http.Controller):
         result = mission.parse_result_id
 
         payload = {
-            "id":            mission.id,
-            "name":          mission.name,
-            "status":        mission.status,
+            "id": mission.id,
+            "name": mission.name,
+            "status": mission.status,
             "ai_conclusion": mission.ai_conclusion or "",
-            "ai_status":     mission.status,   # frontend uses this for AiConclusion
+            "ai_status": mission.status,  # frontend uses this for AiConclusion
         }
 
         if not result:
@@ -121,24 +126,26 @@ class UavController(http.Controller):
 
         gps_points = safe_json(result.gps_points, [])
         enu_points = safe_json(result.enu_points, [])
-        imu_data   = safe_json(result.imu_data,   {})
+        imu_data = safe_json(result.imu_data, {})
 
-        payload.update({
-            # Scalar metrics
-            "total_distance":    result.total_distance,
-            "max_h_speed":       result.max_h_speed,
-            "max_v_speed":       result.max_v_speed,
-            "max_acceleration":  result.max_acceleration,
-            "max_altitude_gain": result.max_altitude_gain,
-            "flight_duration":   result.flight_duration,
-            "gps_count":         result.gps_count,
-            "imu_count":         result.imu_count,
-            "gps_sample_rate":   result.gps_sample_rate,
-            "imu_sample_rate":   result.imu_sample_rate,
-            # Trajectory + IMU arrays
-            "gps_points": gps_points,
-            "enu_points": enu_points,
-            "imu_data":   imu_data,
-        })
+        payload.update(
+            {
+                # Scalar metrics
+                "total_distance": result.total_distance,
+                "max_h_speed": result.max_h_speed,
+                "max_v_speed": result.max_v_speed,
+                "max_acceleration": result.max_acceleration,
+                "max_altitude_gain": result.max_altitude_gain,
+                "flight_duration": result.flight_duration,
+                "gps_count": result.gps_count,
+                "imu_count": result.imu_count,
+                "gps_sample_rate": result.gps_sample_rate,
+                "imu_sample_rate": result.imu_sample_rate,
+                # Trajectory + IMU arrays
+                "gps_points": gps_points,
+                "enu_points": enu_points,
+                "imu_data": imu_data,
+            }
+        )
 
         return request.make_json_response(payload)

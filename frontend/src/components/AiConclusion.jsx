@@ -7,6 +7,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 
 const STATUS_COLOR = {
   pending:    "#8b949e",
@@ -20,6 +21,11 @@ const STATUS_LABEL = {
   processing: "AI is analysing the flight…",
   done:       null,
   error:      "AI analysis failed.",
+};
+
+AiConclusion.propTypes = {
+  conclusion: PropTypes.string,
+  aiStatus:   PropTypes.string,
 };
 
 export default function AiConclusion({ conclusion = null, aiStatus = "pending" }) {

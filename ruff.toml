@@ -1,0 +1,7 @@
+[lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = []
+
+[lint.per-file-ignores]
+# Odoo/OCA __init__.py files use side-effect imports for module registration — F401 is expected
+"**/__init__.py" = ["F401"]

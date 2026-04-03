@@ -33,16 +33,18 @@ from transformers import (
     TrainingArguments,
 )
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [finetune] %(levelname)s %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [finetune] %(levelname)s %(message)s"
+)
 _logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-BASE_MODEL_ID     = os.environ.get("AI_BASE_MODEL",    "Qwen/Qwen2.5-1.5B-Instruct")
+BASE_MODEL_ID = os.environ.get("AI_BASE_MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
 LORA_ADAPTER_PATH = os.environ.get("LORA_ADAPTER_PATH", "/adapters/uav_lora")
-EPOCHS            = int(os.environ.get("FINETUNE_EPOCHS", "3"))
-LR                = float(os.environ.get("FINETUNE_LR", "2e-4"))
-DATA_PATH         = Path(__file__).parent / "training_data.jsonl"
-MODEL_CACHE_DIR   = "/model_cache"
+EPOCHS = int(os.environ.get("FINETUNE_EPOCHS", "3"))
+LR = float(os.environ.get("FINETUNE_LR", "2e-4"))
+DATA_PATH = Path(__file__).parent / "training_data.jsonl"
+MODEL_CACHE_DIR = "/model_cache"
 
 MAX_LENGTH = 1024  # max tokens per training example
 
@@ -104,8 +106,8 @@ def main():
     # ── LoRA configuration ────────────────────────────────────────────────
     lora_config = LoraConfig(
         task_type=TaskType.CAUSAL_LM,
-        r=8,                         # LoRA rank
-        lora_alpha=16,               # scaling factor
+        r=8,  # LoRA rank
+        lora_alpha=16,  # scaling factor
         target_modules=["q_proj", "v_proj"],
         lora_dropout=0.05,
         bias="none",
@@ -129,11 +131,11 @@ def main():
         warmup_ratio=0.1,
         logging_steps=1,
         save_strategy="epoch",
-        fp16=False,          # CPU-only: no fp16
+        fp16=False,  # CPU-only: no fp16
         bf16=False,
         dataloader_num_workers=0,
         report_to="none",
-        no_cuda=True,        # explicit CPU-only
+        no_cuda=True,  # explicit CPU-only
     )
 
     data_collator = DataCollatorForSeq2Seq(

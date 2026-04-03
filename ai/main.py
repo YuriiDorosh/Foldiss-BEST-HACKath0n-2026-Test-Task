@@ -26,17 +26,17 @@ logging.basicConfig(
 _logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-RABBITMQ_HOST     = os.environ.get("RABBITMQ_HOST",     "rabbitmq")
-RABBITMQ_USER     = os.environ.get("RABBITMQ_USER",     "guest")
+RABBITMQ_HOST = os.environ.get("RABBITMQ_HOST", "rabbitmq")
+RABBITMQ_USER = os.environ.get("RABBITMQ_USER", "guest")
 RABBITMQ_PASSWORD = os.environ.get("RABBITMQ_PASSWORD", "guest")
-ODOO_URL          = os.environ.get("ODOO_URL",          "http://odoo:8069")
-ODOO_DB           = os.environ.get("ODOO_DB",           "postgres")
-ODOO_USER         = os.environ.get("ODOO_USER",         "admin")
-ODOO_PASSWORD     = os.environ.get("ODOO_PASSWORD",     "admin")
+ODOO_URL = os.environ.get("ODOO_URL", "http://odoo:8069")
+ODOO_DB = os.environ.get("ODOO_DB", "postgres")
+ODOO_USER = os.environ.get("ODOO_USER", "admin")
+ODOO_PASSWORD = os.environ.get("ODOO_PASSWORD", "admin")
 
-QUEUE_AI    = "uav.ai"
-MAX_RETRIES = 60   # 60 × 10 s = 10 minutes (covers Odoo --init=base cold start)
-RETRY_DELAY = 10   # seconds
+QUEUE_AI = "uav.ai"
+MAX_RETRIES = 60  # 60 × 10 s = 10 minutes (covers Odoo --init=base cold start)
+RETRY_DELAY = 10  # seconds
 
 
 # ── Connection helpers ────────────────────────────────────────────────────────
@@ -49,7 +49,7 @@ def connect_odoo() -> AiOdooClient:
         except Exception as exc:
             _logger.warning("Odoo not ready (%d/%d): %s", attempt, MAX_RETRIES, exc)
             time.sleep(RETRY_DELAY)
-    raise RuntimeError("Could not connect to Odoo after %d attempts" % MAX_RETRIES)
+    raise RuntimeError(f"Could not connect to Odoo after {MAX_RETRIES} attempts")
 
 
 def connect_rabbitmq() -> pika.BlockingConnection:
@@ -68,7 +68,7 @@ def connect_rabbitmq() -> pika.BlockingConnection:
         except pika.exceptions.AMQPConnectionError as exc:
             _logger.warning("RabbitMQ not ready (%d/%d): %s", attempt, MAX_RETRIES, exc)
             time.sleep(RETRY_DELAY)
-    raise RuntimeError("Could not connect to RabbitMQ after %d attempts" % MAX_RETRIES)
+    raise RuntimeError(f"Could not connect to RabbitMQ after {MAX_RETRIES} attempts")
 
 
 # ── Message callback ──────────────────────────────────────────────────────────
@@ -76,8 +76,8 @@ def make_callback(odoo: AiOdooClient):
     def callback(ch, method, properties, body):
         mission_id = None
         try:
-            data           = json.loads(body)
-            mission_id     = data["mission_id"]
+            data = json.loads(body)
+            mission_id = data["mission_id"]
             parse_result_id = data["parse_result_id"]
 
             _logger.info(
@@ -95,7 +95,8 @@ def make_callback(odoo: AiOdooClient):
             conclusion = generate_conclusion(metrics)
             _logger.info(
                 "Conclusion generated for mission %s (%d chars)",
-                mission_id, len(conclusion),
+                mission_id,
+                len(conclusion),
             )
 
             # 4. Save conclusion + mark done
@@ -108,7 +109,8 @@ def make_callback(odoo: AiOdooClient):
             if mission_id:
                 try:
                     odoo.set_mission_status(
-                        mission_id, "error",
+                        mission_id,
+                        "error",
                         error_message=f"AI worker error: {exc}",
                     )
                 except Exception:

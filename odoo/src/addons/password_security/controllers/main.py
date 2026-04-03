@@ -3,13 +3,12 @@
 
 import logging
 
+from odoo.addons.auth_signup.controllers.main import AuthSignupHome
+from odoo.addons.web.controllers.home import ensure_db
+from odoo.http import request
 from werkzeug.exceptions import BadRequest
 
 from odoo import http
-from odoo.http import request
-
-from odoo.addons.auth_signup.controllers.main import AuthSignupHome
-from odoo.addons.web.controllers.home import ensure_db
 
 _logger = logging.getLogger(__name__)
 

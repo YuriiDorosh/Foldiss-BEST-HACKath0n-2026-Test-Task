@@ -22,16 +22,16 @@ from .prompt import build_prompt
 _logger = logging.getLogger(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BASE_MODEL_ID   = os.environ.get("AI_BASE_MODEL",    "Qwen/Qwen2.5-1.5B-Instruct")
+BASE_MODEL_ID = os.environ.get("AI_BASE_MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
 LORA_ADAPTER_PATH = os.environ.get("LORA_ADAPTER_PATH", "/adapters/uav_lora")
-MAX_NEW_TOKENS  = int(os.environ.get("AI_MAX_TOKENS", "80"))
-TEMPERATURE     = float(os.environ.get("AI_TEMPERATURE", "0.7"))
-TOP_P           = float(os.environ.get("AI_TOP_P", "0.9"))
+MAX_NEW_TOKENS = int(os.environ.get("AI_MAX_TOKENS", "80"))
+TEMPERATURE = float(os.environ.get("AI_TEMPERATURE", "0.7"))
+TOP_P = float(os.environ.get("AI_TOP_P", "0.9"))
 
 # ── Singleton state ───────────────────────────────────────────────────────────
-_lock      = threading.Lock()
+_lock = threading.Lock()
 _tokenizer = None
-_model     = None
+_model = None
 
 
 def _load_model():
@@ -51,7 +51,7 @@ def _load_model():
         torch_dtype=torch.float32,
         device_map="cpu",
         trust_remote_code=True,
-        low_cpu_mem_usage=True,   # stream weights to reduce peak RAM during load
+        low_cpu_mem_usage=True,  # stream weights to reduce peak RAM during load
         # cache_dir intentionally omitted — HF_HOME env var controls the path
     )
 
@@ -95,8 +95,8 @@ def generate_conclusion(metrics: dict) -> str:
     _logger.info("Generating conclusion (max_new_tokens=%d) …", MAX_NEW_TOKENS)
 
     inputs = _tokenizer(prompt, return_tensors="pt")
-    input_ids      = inputs["input_ids"]
-    attention_mask = inputs["attention_mask"]   # silence pad==eos warning
+    input_ids = inputs["input_ids"]
+    attention_mask = inputs["attention_mask"]  # silence pad==eos warning
     prompt_len = input_ids.shape[-1]
 
     with torch.no_grad():
@@ -104,7 +104,7 @@ def generate_conclusion(metrics: dict) -> str:
             input_ids,
             attention_mask=attention_mask,
             max_new_tokens=MAX_NEW_TOKENS,
-            do_sample=False,          # greedy decoding — fastest on CPU
+            do_sample=False,  # greedy decoding — fastest on CPU
             pad_token_id=_tokenizer.eos_token_id,
         )
 

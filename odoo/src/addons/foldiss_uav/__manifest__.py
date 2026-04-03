@@ -1,6 +1,6 @@
 {
     "name": "Foldiss UAV Flight Analysis",
-    "summary": "Parse ArduPilot .BIN flight logs, compute metrics, 3D trajectory, AI analysis",
+    "summary": "Parse ArduPilot .BIN flight logs, compute metrics, 3D trajectory, AI analysis",  # noqa: E501
     "version": "18.0.1.0.0",
     "category": "Operations",
     "author": "Foldiss",

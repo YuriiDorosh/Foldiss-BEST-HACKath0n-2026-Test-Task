@@ -3,8 +3,9 @@
 
 import json
 
-from odoo import SUPERUSER_ID, exceptions
 from odoo.tests import common
+
+from odoo import SUPERUSER_ID, exceptions
 
 from ..models.res_users import DANGER, DEFAULT, INFO, SUCCESS, WARNING
 

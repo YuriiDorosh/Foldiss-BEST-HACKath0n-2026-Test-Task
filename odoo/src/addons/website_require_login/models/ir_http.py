@@ -2,8 +2,9 @@
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl-3.0).
 from pathlib import Path
 
-from odoo import models
 from odoo.http import request
+
+from odoo import models
 
 
 class IrHttp(models.AbstractModel):

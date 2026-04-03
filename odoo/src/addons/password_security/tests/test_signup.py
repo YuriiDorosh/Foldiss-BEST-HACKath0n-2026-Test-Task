@@ -4,13 +4,12 @@
 
 from unittest import mock
 
+from odoo.addons.auth_signup.models.res_users import SignupError
+from odoo.exceptions import ValidationError
+from odoo.tests.common import HOST, HttpCase, Opener, get_db_name, tagged
 from requests.exceptions import HTTPError
 
 from odoo import http
-from odoo.exceptions import ValidationError
-from odoo.tests.common import HOST, HttpCase, Opener, get_db_name, tagged
-
-from odoo.addons.auth_signup.models.res_users import SignupError
 
 
 class EndTestException(Exception):

@@ -71,7 +71,7 @@ class UavParseResult(models.Model):
     enu_points = fields.Text(
         string="ENU Points (JSON)",
         help="List of {east, north, up} dicts in metres from the first GPS fix. "
-             "Computed via WGS-84 → ENU conversion.",
+        "Computed via WGS-84 → ENU conversion.",
     )
     imu_data = fields.Text(
         string="IMU Data (JSON)",

@@ -3,9 +3,10 @@
 
 from unittest import mock
 
-from odoo import http
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests.common import HOST, HttpCase, Opener, get_db_name, tagged
+
+from odoo import http
 
 
 @tagged("-at_install", "post_install")

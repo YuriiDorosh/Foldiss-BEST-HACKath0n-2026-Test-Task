@@ -11,7 +11,23 @@
  */
 
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import Plot from "react-plotly.js";
+
+Trajectory3D.propTypes = {
+  enuPoints: PropTypes.arrayOf(PropTypes.shape({
+    east:  PropTypes.number,
+    north: PropTypes.number,
+    up:    PropTypes.number,
+  })),
+  gpsPoints: PropTypes.arrayOf(PropTypes.shape({
+    t:   PropTypes.number,
+    lat: PropTypes.number,
+    lng: PropTypes.number,
+    alt: PropTypes.number,
+    spd: PropTypes.number,
+  })),
+};
 
 export default function Trajectory3D({ enuPoints = [], gpsPoints = [] }) {
   const { east, north, up, altColor, hoverText } = useMemo(() => {

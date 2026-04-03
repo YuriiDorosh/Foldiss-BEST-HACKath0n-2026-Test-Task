@@ -6,8 +6,19 @@
  */
 
 import { useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+TrajectoryMap.propTypes = {
+  gpsPoints: PropTypes.arrayOf(PropTypes.shape({
+    lat: PropTypes.number,
+    lng: PropTypes.number,
+    alt: PropTypes.number,
+    spd: PropTypes.number,
+    t:   PropTypes.number,
+  })),
+};
 
 export default function TrajectoryMap({ gpsPoints }) {
   const containerRef   = useRef(null);

@@ -1,9 +1,9 @@
 # Copyright 2016 ACSONE SA/NV
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
-from odoo import _, api, exceptions, fields, models
-
 from odoo.addons.bus.models.bus import channel_with_db, json_dump
 from odoo.addons.web.controllers.utils import clean_action
+
+from odoo import _, api, exceptions, fields, models
 
 DEFAULT_MESSAGE = "Default message"
 

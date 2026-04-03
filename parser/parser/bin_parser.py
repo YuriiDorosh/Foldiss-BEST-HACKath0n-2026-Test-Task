@@ -16,7 +16,6 @@ ArduPilot GPS Status values:
 
 import logging
 import os
-import tempfile
 
 from pymavlink import mavutil
 
@@ -39,8 +38,11 @@ def parse_bin(file_path: str) -> tuple[list[dict], list[dict]]:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"BIN file not found: {file_path}")
 
-    _logger.info("Opening BIN log: %s  (size: %.1f KB)",
-                 file_path, os.path.getsize(file_path) / 1024)
+    _logger.info(
+        "Opening BIN log: %s  (size: %.1f KB)",
+        file_path,
+        os.path.getsize(file_path) / 1024,
+    )
 
     try:
         mlog = mavutil.mavlink_connection(file_path, dialect="ardupilotmega")
@@ -65,30 +67,35 @@ def parse_bin(file_path: str) -> tuple[list[dict], list[dict]]:
             if d.get("Status", 0) < 3:
                 continue
 
-            gps_records.append({
-                "TimeUS": d["TimeUS"],
-                "Lat":    d["Lat"],
-                "Lng":    d["Lng"],
-                "Alt":    d["Alt"],
-                "Spd":    d["Spd"],
-                "Status": d["Status"],
-            })
+            gps_records.append(
+                {
+                    "TimeUS": d["TimeUS"],
+                    "Lat": d["Lat"],
+                    "Lng": d["Lng"],
+                    "Alt": d["Alt"],
+                    "Spd": d["Spd"],
+                    "Status": d["Status"],
+                }
+            )
 
         elif msg_type == "IMU":
             # Primary sensor only
             if d.get("I", 1) != 0:
                 continue
 
-            imu_records.append({
-                "TimeUS": d["TimeUS"],
-                "AccX":   d["AccX"],
-                "AccY":   d["AccY"],
-                "AccZ":   d["AccZ"],
-            })
+            imu_records.append(
+                {
+                    "TimeUS": d["TimeUS"],
+                    "AccX": d["AccX"],
+                    "AccY": d["AccY"],
+                    "AccZ": d["AccZ"],
+                }
+            )
 
     _logger.info(
         "Parsed %d GPS records (valid fix) and %d IMU records",
-        len(gps_records), len(imu_records),
+        len(gps_records),
+        len(imu_records),
     )
     return gps_records, imu_records
 

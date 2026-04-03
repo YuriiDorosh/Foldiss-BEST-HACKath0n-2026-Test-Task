@@ -1,10 +1,9 @@
 # Copyright 2016 ForgeFlow S.L.
 # Copyright 2016 Serpent Consulting Services Pvt. Ltd.
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+from odoo.addons.base.tests.common import BaseCommon
 from odoo.osv import expression
 from odoo.tools.sql import SQL
-
-from odoo.addons.base.tests.common import BaseCommon
 
 
 class QueryGenerationCase(BaseCommon):
@@ -39,7 +38,7 @@ class QueryGenerationCase(BaseCommon):
         )
         self.assertEqual(
             complete_where,
-            b'SELECT FROM "res_partner" WHERE ' b'("res_partner"."name" % \'test\')',
+            b'SELECT FROM "res_partner" WHERE ("res_partner"."name" % \'test\')',
         )
 
     def test_fuzzy_where_generation_translatable(self):

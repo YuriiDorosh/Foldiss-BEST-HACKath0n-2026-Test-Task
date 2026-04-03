@@ -20,11 +20,11 @@ import urllib.request
 import xmlrpc.client
 
 # ── Config (reads from env, falls back to defaults) ───────────────────────────
-ODOO_URL  = os.environ.get("ODOO_EXTERNAL_URL", "http://localhost:5433")
-DB        = os.environ.get("ODOO_DB",           "odoo")
-USER      = os.environ.get("ODOO_USER",         "admin")
-PASSWORD  = os.environ.get("ODOO_PASSWORD",     "admin")
-MAX_WAIT  = int(os.environ.get("ODOO_INIT_TIMEOUT", "600"))   # seconds
+ODOO_URL = os.environ.get("ODOO_EXTERNAL_URL", "http://localhost:5433")
+DB = os.environ.get("ODOO_DB", "odoo")
+USER = os.environ.get("ODOO_USER", "admin")
+PASSWORD = os.environ.get("ODOO_PASSWORD", "admin")
+MAX_WAIT = int(os.environ.get("ODOO_INIT_TIMEOUT", "600"))  # seconds
 POLL_INTERVAL = 5
 
 
@@ -34,9 +34,7 @@ def wait_for_odoo() -> bool:
     deadline = time.time() + MAX_WAIT
     while time.time() < deadline:
         try:
-            code = urllib.request.urlopen(
-                f"{ODOO_URL}/web/login", timeout=3
-            ).getcode()
+            code = urllib.request.urlopen(f"{ODOO_URL}/web/login", timeout=3).getcode()
             if code == 200:
                 print(" ready!\n")
                 return True
@@ -44,7 +42,7 @@ def wait_for_odoo() -> bool:
             pass
         print(".", end="", flush=True)
         time.sleep(POLL_INTERVAL)
-    print("\nERROR: Odoo did not become ready within %d seconds." % MAX_WAIT)
+    print(f"\nERROR: Odoo did not become ready within {MAX_WAIT} seconds.")
     return False
 
 
@@ -60,7 +58,7 @@ def authenticate(common) -> int:
                 return uid
             print("failed (wrong credentials?)")
             return 0
-        except Exception as exc:
+        except Exception:
             # Registry not yet loaded — keep retrying
             print(".", end="", flush=True)
             time.sleep(5)
@@ -71,8 +69,11 @@ def authenticate(common) -> int:
 # ── Step 3: install foldiss_uav if needed ─────────────────────────────────────
 def ensure_addon(models, uid) -> bool:
     rows = models.execute_kw(
-        DB, uid, PASSWORD,
-        "ir.module.module", "search_read",
+        DB,
+        uid,
+        PASSWORD,
+        "ir.module.module",
+        "search_read",
         [[["name", "=", "foldiss_uav"]]],
         {"fields": ["name", "state"], "limit": 1},
     )
@@ -93,15 +94,22 @@ def ensure_addon(models, uid) -> bool:
     print("Installing foldiss_uav ...", end=" ", flush=True)
     module_id = rows[0]["id"]
     models.execute_kw(
-        DB, uid, PASSWORD,
-        "ir.module.module", "button_immediate_install",
+        DB,
+        uid,
+        PASSWORD,
+        "ir.module.module",
+        "button_immediate_install",
         [[module_id]],
     )
     # Verify
     rows2 = models.execute_kw(
-        DB, uid, PASSWORD,
-        "ir.module.module", "read",
-        [[module_id]], {"fields": ["state"]},
+        DB,
+        uid,
+        PASSWORD,
+        "ir.module.module",
+        "read",
+        [[module_id]],
+        {"fields": ["state"]},
     )
     if rows2 and rows2[0]["state"] == "installed":
         print("done.")
@@ -119,16 +127,19 @@ def ensure_admin_password(models, uid) -> None:
     This is idempotent — calling it again with the same password is safe.
     """
     if PASSWORD == "admin":
-        return   # default, nothing to do
+        return  # default, nothing to do
     try:
         models.execute_kw(
-            DB, uid, PASSWORD,
-            "res.users", "write",
+            DB,
+            uid,
+            PASSWORD,
+            "res.users",
+            "write",
             [[uid], {"password": PASSWORD}],
         )
-        print(f"✓ Admin password synced from ODOO_PASSWORD env var.")
+        print("✓ Admin password synced from ODOO_PASSWORD env var.")
     except Exception:
-        pass   # already set or insufficient permissions — not fatal
+        pass  # already set or insufficient permissions — not fatal
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────

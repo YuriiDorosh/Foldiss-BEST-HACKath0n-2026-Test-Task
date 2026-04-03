@@ -4,9 +4,9 @@ import os
 
 import pika
 import pika.exceptions
-
-from odoo import api, fields, models, _
 from odoo.exceptions import UserError
+
+from odoo import _, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class UavMission(models.Model):
     )
     log_file = fields.Binary(
         string="BIN Log File",
-        attachment=True,   # stored via ir.attachment, not inline in DB
+        attachment=True,  # stored via ir.attachment, not inline in DB
     )
     log_filename = fields.Char(string="Log Filename")
     user_id = fields.Many2one(
@@ -40,13 +40,13 @@ class UavMission(models.Model):
     # ── Status ───────────────────────────────────────────────────────────────
     status = fields.Selection(
         selection=[
-            ("draft",         "Draft"),
-            ("queued",        "Queued"),
-            ("parsing",       "Parsing"),
-            ("parsed",        "Parsed"),
+            ("draft", "Draft"),
+            ("queued", "Queued"),
+            ("parsing", "Parsing"),
+            ("parsed", "Parsed"),
             ("ai_processing", "AI Processing"),
-            ("done",          "Done"),
-            ("error",         "Error"),
+            ("done", "Done"),
+            ("error", "Error"),
         ],
         default="draft",
         required=True,
@@ -132,19 +132,23 @@ class UavMission(models.Model):
             [
                 ("res_model", "=", "uav.mission"),
                 ("res_field", "=", "log_file"),
-                ("res_id",    "=", self.id),
+                ("res_id", "=", self.id),
             ],
             limit=1,
         )
         if not attachment:
-            raise UserError(_("Attachment record not found. Try re-uploading the file."))
+            raise UserError(
+                _("Attachment record not found. Try re-uploading the file.")
+            )
 
         # Reset any previous results
-        self.write({
-            "status":         "queued",
-            "error_message":  False,
-            "ai_conclusion":  False,
-        })
+        self.write(
+            {
+                "status": "queued",
+                "error_message": False,
+                "ai_conclusion": False,
+            }
+        )
         if self.parse_result_id:
             self.parse_result_id.unlink()
             self.parse_result_id = False
@@ -156,26 +160,35 @@ class UavMission(models.Model):
                 {"mission_id": self.id, "attachment_id": attachment.id},
             )
         except Exception as exc:
-            self.write({
-                "status":        "error",
-                "error_message": f"Failed to publish parse job: {exc}",
-            })
+            self.write(
+                {
+                    "status": "error",
+                    "error_message": f"Failed to publish parse job: {exc}",
+                }
+            )
             raise UserError(
-                _("Could not connect to the message queue. "
-                  "Make sure RabbitMQ is running.\n\nDetails: %s") % exc
+                _(
+                    "Could not connect to the message queue. "
+                    "Make sure RabbitMQ is running.\n\nDetails: %s"
+                )
+                % exc
             ) from exc
 
-        _logger.info("Mission %s queued for parsing (attachment %s)", self.id, attachment.id)
+        _logger.info(
+            "Mission %s queued for parsing (attachment %s)", self.id, attachment.id
+        )
         return True
 
     def action_rerun(self):
         """Reset this mission to draft and resubmit the full parse → AI flow."""
         self.ensure_one()
-        self.write({
-            "status":        "draft",
-            "error_message": False,
-            "ai_conclusion": False,
-        })
+        self.write(
+            {
+                "status": "draft",
+                "error_message": False,
+                "ai_conclusion": False,
+            }
+        )
         if self.parse_result_id:
             self.parse_result_id.unlink()
             self.parse_result_id = False
@@ -186,8 +199,8 @@ class UavMission(models.Model):
         self.ensure_one()
         viewer_base = os.environ.get("VIEWER_URL", "http://localhost:3000")
         return {
-            "type":   "ir.actions.act_url",
-            "url":    f"{viewer_base}/mission/{self.id}",
+            "type": "ir.actions.act_url",
+            "url": f"{viewer_base}/mission/{self.id}",
             "target": "new",
         }
 
@@ -198,8 +211,8 @@ class UavMission(models.Model):
         Uses a short-lived BlockingConnection — never hold pika connections
         across Odoo ORM transactions (it would block the web worker).
         """
-        host     = os.environ.get("RABBITMQ_HOST",     "rabbitmq")
-        user     = os.environ.get("RABBITMQ_USER",     "guest")
+        host = os.environ.get("RABBITMQ_HOST", "rabbitmq")
+        user = os.environ.get("RABBITMQ_USER", "guest")
         password = os.environ.get("RABBITMQ_PASSWORD", "guest")
 
         credentials = pika.PlainCredentials(user, password)

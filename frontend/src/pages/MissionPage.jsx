@@ -10,6 +10,7 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import PropTypes from "prop-types";
 import { useParams, Link } from "react-router-dom";
 import Trajectory3D   from "../components/Trajectory3D";
 import TrajectoryMap  from "../components/TrajectoryMap";
@@ -174,6 +175,10 @@ export default function MissionPage() {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+StatusBadge.propTypes = {
+  status: PropTypes.string.isRequired,
+};
+
 function StatusBadge({ status }) {
   const COLOR = {
     loading:       "#8b949e",

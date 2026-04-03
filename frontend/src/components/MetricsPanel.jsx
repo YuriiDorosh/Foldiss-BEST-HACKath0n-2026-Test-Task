@@ -8,6 +8,7 @@
  */
 
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import Plot from "react-plotly.js";
 
 // ── Metric card definitions ───────────────────────────────────────────────────
@@ -24,6 +25,12 @@ const CARD_DEFS = [
   { key: "imu_sample_rate",   label: "IMU Sample Rate",     unit: "Hz",  decimals: 2 },
 ];
 
+MetricCard.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  unit:  PropTypes.string,
+};
+
 function MetricCard({ label, value, unit }) {
   return (
     <div style={styles.card}>
@@ -37,6 +44,13 @@ function MetricCard({ label, value, unit }) {
 }
 
 // ── IMU line chart ────────────────────────────────────────────────────────────
+ImuChart.propTypes = {
+  times:  PropTypes.arrayOf(PropTypes.number),
+  values: PropTypes.arrayOf(PropTypes.number),
+  label:  PropTypes.string.isRequired,
+  color:  PropTypes.string.isRequired,
+};
+
 function ImuChart({ times = [], values = [], label, color }) {
   const layout = {
     paper_bgcolor: "#161b22",
@@ -66,6 +80,15 @@ function ImuChart({ times = [], values = [], label, color }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
+MetricsPanel.propTypes = {
+  metrics: PropTypes.object,
+  imuData: PropTypes.shape({
+    times:         PropTypes.arrayOf(PropTypes.number),
+    vel_z:         PropTypes.arrayOf(PropTypes.number),
+    acc_magnitude: PropTypes.arrayOf(PropTypes.number),
+  }),
+};
+
 export default function MetricsPanel({ metrics = {}, imuData = {} }) {
   const formattedCards = useMemo(() =>
     CARD_DEFS.map(({ key, label, unit, decimals }) => ({
