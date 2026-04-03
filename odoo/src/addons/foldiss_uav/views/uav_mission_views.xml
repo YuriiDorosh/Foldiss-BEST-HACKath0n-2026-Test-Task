@@ -38,6 +38,27 @@
                 </header>
 
                 <sheet>
+                    <!-- AI processing banner -->
+                    <div
+                        invisible="status != 'ai_processing'"
+                        class="alert alert-warning text-center mb-3"
+                        role="alert"
+                    >
+                        <strong>AI analysis in progress.</strong>
+                        This may take some time depending on server load.
+                        You can leave this page — results will appear automatically when ready.
+                    </div>
+
+                    <!-- Parsing banner -->
+                    <div
+                        invisible="status not in ('queued', 'parsing')"
+                        class="alert alert-info text-center mb-3"
+                        role="alert"
+                    >
+                        <strong>Flight log is being parsed.</strong>
+                        This usually takes a few seconds.
+                    </div>
+
                     <!-- Mission info -->
                     <group>
                         <group string="Mission">
