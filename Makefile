@@ -112,6 +112,11 @@ down-all:
 	$(DC) $(ENV) down
 	$(MAKE) -C odoo down-all
 
+nuke:
+	@echo ">>> Removing ALL containers, images, volumes, and networks..."
+	docker system prune -a --volumes -f
+	@echo ">>> Done. Everything wiped clean."
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Logs
 # ─────────────────────────────────────────────────────────────────────────────
