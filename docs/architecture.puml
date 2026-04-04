@@ -1,0 +1,128 @@
+@startuml
+left to right direction
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+skinparam rectangle {
+  RoundCorner 12
+  BorderColor Black
+}
+
+skinparam database {
+  BorderColor Black
+}
+
+title UAV Flight Log Analysis Platform — Current Architecture
+
+actor "User" as User
+
+package "Frontend Layer" {
+  rectangle "React Frontend\n(Vite + Plotly + Leaflet)\nPort: 3000\n\nViews:\n- 3D trajectory (Plotly scatter3d)\n- Real map (OpenStreetMap/Leaflet)\n- Flight metrics dashboard\n- IMU charts (velocity, acceleration)\n- AI analysis conclusion\n- Flight analytics panel\n\nPolls Odoo API every 3s\nvia Nginx reverse proxy" as Frontend #LightGreen
+
+  rectangle "Nginx\n(Frontend container)\n\nRoutes:\n- / -> React SPA\n- /uav/* -> proxy to Odoo:8069\n\nSame-origin API proxy\nto avoid CORS issues" as FrontendNginx #E8E8E8
+}
+
+package "Odoo Stack" {
+  rectangle "Odoo 18\nPort: 8069 (via Nginx :5433)\n\nfoldiss_uav addon:\n- uav.mission model\n- uav.parse.result model\n- Mission lifecycle management\n- File upload (.BIN)\n- Status tracking (statusbar)\n- Rerun button\n- Open 3D Viewer button\n- AI conclusion (HTML widget)\n- Alert banners (parsing/AI)\n\nAPI endpoints:\n- POST /uav/webhook\n- GET /uav/api/mission/<id>\n- GET /uav/api/mission/<id>/trajectory\n\nPublishes parse jobs\nto RabbitMQ" as Odoo #LightBlue
+
+  rectangle "Nginx\n(Odoo proxy)\nPort: 5433 -> 8069\n\nReverse proxy for Odoo\nweb interface" as OdooNginx #E8E8E8
+
+  database "PostgreSQL 15\nPort: 5435\n\nStores:\n- Users & auth\n- Missions (uav.mission)\n- Parse results (uav.parse.result)\n  - Scalar metrics\n  - GPS trajectory (JSON)\n  - ENU points (JSON)\n  - IMU data (JSON)\n  - Flight analytics (JSON)\n- Attachments (.BIN files)\n- AI conclusions (HTML)" as PG #LightYellow
+}
+
+package "Async Workers" {
+  rectangle "Parser Worker\n(Python + pymavlink)\n\nPipeline:\n1. Consume from uav.parse queue\n2. Download .BIN via XML-RPC\n3. Parse GPS (I=0, Status>=3)\n4. Parse IMU (I=0)\n5. Compute metrics:\n   - Haversine distance\n   - Trapezoidal IMU integration\n   - WGS-84 -> ENU conversion\n6. Compute flight analytics:\n   - Flight phases (hover/cruise/climb/descent)\n   - Path efficiency\n   - Vibration analysis (RMS per axis)\n   - Speed distribution\n   - Turn detection\n   - GPS anomaly detection\n   - Acceleration spike detection\n   - Altitude/speed profiles\n7. Save to Odoo via XML-RPC\n8. Publish to uav.ai queue" as Parser #FFE0B2
+
+  rectangle "AI Worker\n(Python + Qwen2.5-1.5B-Instruct)\nCPU-only, float32\n\nPipeline:\n1. Consume from uav.ai queue\n2. Read metrics + analytics from Odoo\n3. Build structured prompt with:\n   - Basic flight metrics\n   - Flight analytics (phases, vibration)\n   - Anomaly data\n   - Token budget hint\n4. Generate HTML analysis via LLM\n5. Sanitize HTML output\n6. Save conclusion to Odoo\n\nConfig:\n- Greedy decoding (do_sample=False)\n- repetition_penalty=1.08\n- min/max token control\n- HF_HOME=/model_cache (offline)" as AI #FFCCCC
+}
+
+package "Message Bus" {
+  rectangle "RabbitMQ\nPort: 5672 / 15672\n\nQueues:\n- uav.parse (durable)\n- uav.ai (durable)\n\nFlow:\nOdoo -> uav.parse -> Parser\nParser -> uav.ai -> AI Worker" as Rabbit #FFE4B5
+}
+
+package "Monitoring Stack" {
+  rectangle "Prometheus" as Prometheus #FFDDAA
+  rectangle "Grafana\nPort: 3003" as Grafana #F6C7FF
+  rectangle "Loki + Promtail\nPort: 3100" as Loki #DDFFDD
+  rectangle "cAdvisor\nNode Exporter\nNginx Exporter\nPostgres Exporter" as Exporters #EEEEEE
+}
+
+package "Model Storage" {
+  rectangle "artifacts/\n(bind-mounted)\n\nmodels/hub/models--Qwen--Qwen2.5-1.5B-Instruct/\n  -> /model_cache in container\n\nlora/ (optional)\n  -> /adapters in container\n\nDownloaded once via:\nmake download-model" as Artifacts #FAFAD2
+}
+
+' === User flows ===
+User --> OdooNginx : Login / upload .BIN /\nstart parsing / view results\nhttp://IP:5433
+User --> Frontend : View 3D trajectory /\nmap / metrics / AI analysis\nhttp://IP:3000
+
+' === Frontend flows ===
+FrontendNginx --> Odoo : /uav/* proxy
+Frontend --> FrontendNginx : SPA + API calls
+
+' === Odoo flows ===
+OdooNginx --> Odoo : reverse proxy :5433->:8069
+Odoo --> PG : Read/write all data
+Odoo --> Rabbit : Publish to uav.parse
+
+' === Parser flows ===
+Rabbit --> Parser : Consume uav.parse
+Parser --> Odoo : XML-RPC:\n- download attachment\n- create parse result\n- update mission status
+Parser --> Rabbit : Publish to uav.ai
+
+' === AI flows ===
+Rabbit --> AI : Consume uav.ai
+AI --> Odoo : XML-RPC:\n- read parse result + analytics\n- save HTML conclusion\n- update status to done
+AI --> Artifacts : Load model weights\n(HF_HOME, offline mode)
+
+' === Monitoring ===
+Exporters --> Prometheus : scrape metrics
+Prometheus --> Grafana : dashboards
+Loki --> Grafana : log aggregation
+
+' === Notes ===
+note right of Parser
+Flight Analytics computed:
+- Path efficiency (%)
+- Phase breakdown (hover/cruise/climb/descent)
+- Speed distribution histogram
+- Vibration RMS + per-axis
+- GPS jump detection
+- Acceleration spike count
+- Turn count + heading change
+- Altitude/speed profiles
+end note
+
+note right of AI
+Prompt structure:
+SYSTEM: Expert analyst instructions
+USER: Basic metrics + full analytics
+  (phases, vibration, anomalies)
+ASSISTANT: Structured HTML report
+  (Flight Profile, Key Findings,
+   Risk Assessment, Recommendations)
+end note
+
+note bottom of Rabbit
+Message flow:
+1. User clicks "Start Parsing" in Odoo
+2. Odoo publishes {mission_id, attachment_id}
+   to uav.parse queue
+3. Parser processes, saves results,
+   publishes {mission_id, parse_result_id}
+   to uav.ai queue
+4. AI Worker generates conclusion,
+   saves to Odoo, marks mission "done"
+end note
+
+note bottom of PG
+uav.parse.result stores:
+- 10 scalar metrics
+- GPS trajectory (lat/lng/alt/spd/t)
+- ENU points (east/north/up)
+- IMU data (times/vel_z/acc_magnitude)
+- Flight analytics JSON
+  (phases, vibration, anomalies, profiles)
+end note
+
+@enduml
